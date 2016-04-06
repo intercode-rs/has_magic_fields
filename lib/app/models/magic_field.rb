@@ -1,4 +1,5 @@
 class MagicField < ActiveRecord::Base
+  serialize :value_options
   has_many :magic_field_relationships, :dependent => :destroy
   has_many :owners, :through => :magic_field_relationships, :as => :owner
   has_many :magic_attributes, :dependent => :destroy
@@ -8,8 +9,12 @@ class MagicField < ActiveRecord::Base
 
   before_save :set_pretty_name
 
+  def value_options_array
+    value_options.split("\r\n") rescue []
+  end
+
   def self.datatypes
-    ["string","check_box_boolean", "date", "datetime", "integer"]
+    ["select", "radio_buttons", "multi_check_box", "check_box_boolean", "date", "datetime", "integer", "string"]
   end
 
   def type_cast(value)
@@ -25,8 +30,14 @@ class MagicField < ActiveRecord::Base
           Time.parse(value)
         when :integer
           value.to_int
+        when :multi_check_box
+          YAML.load(value) rescue []
       else
-        value
+        if is_association
+          datatype.constantize.find_by_id(value)
+        else
+          value
+        end
       end
     rescue
       value

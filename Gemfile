@@ -1,7 +1,6 @@
-# source "http://ruby.taobao.org"
 source 'https://rubygems.org'
 
-gem 'rails', ' >= 4.0.0'
+gem 'rails', ' >= 3.1'
 
 group :test do
   gem 'rspec-rails', ' >= 3.0.0'

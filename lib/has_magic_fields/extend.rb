@@ -37,22 +37,53 @@ module HasMagicFields
 
     included do
 
-      def create_magic_filed(options = {})
-        type_scoped = options[:type_scoped].blank? ? self.class.name : options[:type_scoped].classify
+      def create_magic_field
+        type_scoped = self.class.name
         self.magic_fields.create options.merge(type_scoped: type_scoped )
+      end
+
+      def self.create_magic_field(options = {})
+        type_scoped = options[:type_scoped].blank? ? self.name : options[:type_scoped].classify
+        MagicField.create(options.merge(type_scoped: type_scoped ) )
       end
 
       def magic_fields_with_scoped(type_scoped = nil)
         type_scoped = type_scoped.blank? ? self.class.name : type_scoped.classify
         magic_fields_without_scoped.where(type_scoped: type_scoped)
       end
-      
+
+      def self.magic_fields_names_with_scoped(type_scoped = nil)
+        type_scoped = type_scoped.blank? ? self.name : type_scoped.classify
+        MagicField.where(type_scoped: type_scoped).uniq.pluck(:name).uniq
+      end
+
+      def self.magic_fields_with_scoped(type_scoped = nil)
+        type_scoped = type_scoped.blank? ? self.name : type_scoped.classify
+        MagicField.where(type_scoped: type_scoped).uniq
+      end
+
+      def update_attributes(attributes)
+        begin
+          super(attributes)
+        rescue ActiveRecord::UnknownAttributeError => e
+          e.message.slice!("unknown attribute: ")
+          magic_field_name = e.message
+          magic_field = self.find_magic_field_by_name(magic_field_name)
+          if magic_field.try(:class) == MagicField
+            self.write_magic_attribute(magic_field_name, attributes[magic_field_name])
+            attributes.delete(magic_field_name)
+            self.update_attributes(attributes)
+          else
+            raise e
+          end
+        end
+      end
+
       def method_missing(method_id, *args)
         super(method_id, *args)
       rescue NoMethodError
         method_name = method_id.to_s
-        super(method_id, *args) unless magic_field_names.include?(method_name) or (md = /[\?|\=]/.match(method_name) and magic_field_names.include?(md.pre_match))
-
+        super(method_id, *args) unless self.class.magic_field_names.include?(method_name) or (md = /[\?|\=]/.match(method_name) and self.class.magic_field_names.include?(md.pre_match))
         if method_name =~ /=$/
           var_name = method_name.gsub('=', '')
           value = args.first
@@ -64,6 +95,10 @@ module HasMagicFields
 
       def magic_field_names(type_scoped = nil)
         magic_fields_with_scoped(type_scoped).map(&:name)
+      end
+
+      def self.magic_field_names(type_scoped = nil)
+        magic_fields_names_with_scoped(type_scoped)
       end
 
       def valid?(context = nil)
@@ -80,7 +115,7 @@ module HasMagicFields
       def read_magic_attribute(field_name)
         field = find_magic_field_by_name(field_name)
         attribute = find_magic_attribute_by_field(field)
-        value = (attr = attribute.first) ?  attr.to_s : field.default
+        value = (attr = attribute.first) ?  attr.to_s : field.try(:default)
         value.nil?  ? nil : field.type_cast(value)
       end
 
@@ -89,15 +124,21 @@ module HasMagicFields
         attribute = find_magic_attribute_by_field(field) 
         (attr = attribute.first) ? update_magic_attribute(attr, value) : create_magic_attribute(field, value)
       end
-      
+
       def find_magic_attribute_by_field(field)
         magic_attributes.to_a.find_all {|attr| attr.magic_field_id == field.id}
       end
       
       def find_magic_field_by_name(attr_name)
-        magic_fields_with_scoped.to_a.find {|column| column.name == attr_name}
+        #magic_fields_with_scoped.to_a.find {|column| column.name == attr_name}
+        type_scoped = type_scoped.blank? ? self.class.name : type_scoped.classify
+        MagicField.where(type_scoped: type_scoped, name: attr_name).last
       end
-      
+
+      def self.find_magic_field_by_name(attr_name)
+        MagicField.where(type_scoped: name, name: attr_name).last
+      end
+
       def create_magic_attribute(magic_field, value)
         magic_attributes << MagicAttribute.create(:magic_field => magic_field, :value => value)
       end

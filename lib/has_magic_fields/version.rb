@@ -1,3 +1,3 @@
 module HasMagicFields
-  VERSION = "0.2.1"
+  VERSION = "0.2.33"
 end

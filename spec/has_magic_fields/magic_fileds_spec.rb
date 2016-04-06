@@ -143,7 +143,7 @@ describe HasMagicFields do
   context "magic_field class method" do
     it "datatypes method" do
       expect(MagicField.datatypes.class).to be(Array)
-      expect(MagicField.datatypes.size).to eq(4)
+      expect(MagicField.datatypes.size).to eq(5)
       expect(MagicField.datatypes.first).to eq("check_box_boolean")
     end
   end
