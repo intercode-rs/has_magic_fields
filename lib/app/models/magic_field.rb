@@ -14,13 +14,15 @@ class MagicField < ActiveRecord::Base
   end
 
   def self.datatypes
-    ["select", "radio_buttons", "multi_check_box", "check_box_boolean", "date", "datetime", "integer", "string"]
+    ["select", "multiselect", "currency", "radio_buttons", "multi_check_box", "check_box_boolean", "date", "datetime", "integer", "string"]
   end
 
   def type_cast(value)
     begin
       case datatype.to_sym
         when :string
+          value
+        when :currency
           value
         when :check_box_boolean
           (value.to_int == 1) ? true : false 
@@ -31,6 +33,8 @@ class MagicField < ActiveRecord::Base
         when :integer
           value.to_int
         when :multi_check_box
+          YAML.load(value) rescue []
+        when :multiselect
           YAML.load(value) rescue []
       else
         if is_association
