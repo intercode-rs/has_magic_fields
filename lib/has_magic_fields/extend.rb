@@ -62,6 +62,23 @@ module HasMagicFields
         MagicField.where(type_scoped: type_scoped).uniq
       end
 
+      def assign_attributes(new_attributes, options = {})
+        begin
+          super(new_attributes, options)
+        rescue ActiveRecord::UnknownAttributeError => e
+          e.message.slice!("unknown attribute: ")
+          magic_field_name = e.message
+          magic_field = self.find_magic_field_by_name(magic_field_name)
+          if magic_field.try(:class) == MagicField
+            self.write_magic_attribute(magic_field_name, new_attributes[magic_field_name])
+            new_attributes.delete(magic_field_name)
+            self.assign_attributes(new_attributes, options)
+          else
+            raise e
+          end
+        end
+      end
+
       def update_attributes(attributes)
         begin
           super(attributes)
