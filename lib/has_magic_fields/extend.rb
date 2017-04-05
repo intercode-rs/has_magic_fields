@@ -66,8 +66,10 @@ module HasMagicFields
         begin
           super(new_attributes, options)
         rescue ActiveRecord::UnknownAttributeError => e
+          new_attributes = new_attributes.symbolize_keys
           e.message.slice!("unknown attribute: ")
           magic_field_name = e.message
+          magic_field_name = magic_field_name.to_sym
           magic_field = self.find_magic_field_by_name(magic_field_name)
           if magic_field.try(:class) == MagicField
             self.write_magic_attribute(magic_field_name, new_attributes[magic_field_name])
@@ -83,8 +85,10 @@ module HasMagicFields
         begin
           super(attributes)
         rescue ActiveRecord::UnknownAttributeError => e
+          attributes = attributes.symbolize_keys
           e.message.slice!("unknown attribute: ")
           magic_field_name = e.message
+          magic_field_name = magic_field_name.to_sym
           magic_field = self.find_magic_field_by_name(magic_field_name)
           if magic_field.try(:class) == MagicField
             self.write_magic_attribute(magic_field_name, attributes[magic_field_name])
