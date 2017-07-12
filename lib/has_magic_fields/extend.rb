@@ -137,10 +137,16 @@ module HasMagicFields
         field = find_magic_field_by_name(field_name)
         attribute = find_magic_attribute_by_field(field)
         value = (attr = attribute.first) ?  attr.to_s : field.try(:default)
+        if field.datatype == "check_box_boolean" && value.nil?
+          value = false
+        end
         value.nil?  ? nil : field.type_cast(value)
       end
 
       def write_magic_attribute(field_name, value)
+        if value.is_a?(Array)
+          value = value.reject_blanks
+        end
         field = find_magic_field_by_name(field_name)
         attribute = find_magic_attribute_by_field(field) 
         (attr = attribute.first) ? update_magic_attribute(attr, value) : create_magic_attribute(field, value)
