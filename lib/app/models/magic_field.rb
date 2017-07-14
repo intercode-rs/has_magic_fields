@@ -25,7 +25,7 @@ class MagicField < ActiveRecord::Base
         when :currency
           value
         when :check_box_boolean
-          (value.to_int == 1) ? true : false 
+          (YAML.load(value)[0].to_i == 1) ? true : false
         when :date
           Date.parse(value)
         when :datetime
@@ -33,9 +33,9 @@ class MagicField < ActiveRecord::Base
         when :integer
           value.to_int
         when :multi_check_box
-          YAML.load(value) rescue []
+          (YAML.load(value) || []) rescue []
         when :multiselect
-          YAML.load(value) rescue []
+          (YAML.load(value) || []) rescue []
       else
         if is_association
           datatype.constantize.find_by_id(value)
